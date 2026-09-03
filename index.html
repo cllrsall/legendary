@@ -1,0 +1,1957 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0a0a0b" />
+    <title>sall — AI Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        /* ── reset & vars ── */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        :root {
+            --bg-0: #0a0a0b;
+            --bg-1: #101012;
+            --glass: rgba(255, 255, 255, 0.045);
+            --glass-strong: rgba(255, 255, 255, 0.08);
+            --border: rgba(255, 255, 255, 0.09);
+            --border-soft: rgba(255, 255, 255, 0.06);
+            --ink: #f3f6fd;
+            --ink-dim: #9a9ba3;
+            --ink-faint: #5c5d64;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --font-display: 'Space Grotesk', sans-serif;
+            --font-body: 'Inter', sans-serif;
+        }
+        html,
+        body {
+            height: 100%;
+            height: 100dvh;
+            background: var(--bg-0);
+            overflow: hidden;
+            font-family: var(--font-body);
+            color: var(--ink);
+            -webkit-font-smoothing: antialiased;
+        }
+        ::selection {
+            background: rgba(255, 255, 255, 0.18);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.12);
+            border-radius: 8px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        /* ── app grid ── */
+        .app {
+            display: grid;
+            grid-template-columns: 264px 1fr;
+            height: 100vh;
+            height: 100dvh;
+            height: calc(var(--app-vh, 1vh) * 100);
+            width: 100vw;
+            background:
+                radial-gradient(1200px 600px at 15% -10%, rgba(255, 255, 255, 0.05), transparent 60%),
+                radial-gradient(900px 500px at 100% 0%, rgba(255, 255, 255, 0.035), transparent 55%),
+                var(--bg-0);
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            padding: 18px 14px;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+            backdrop-filter: blur(22px) saturate(140%);
+            -webkit-backdrop-filter: blur(22px) saturate(140%);
+            border-right: 1px solid var(--border-soft);
+            z-index: 20;
+        }
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 6px 6px 20px 6px;
+        }
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: linear-gradient(155deg, #ffffff, #7e7e7e 45%, #2a2a2a);
+            border: 1px solid var(--border);
+            box-shadow: 0 0 18px rgba(255, 255, 255, 0.18);
+        }
+        .brand-mark img,
+        .brand-mark video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .brand span {
+            font-family: var(--font-display);
+            font-weight: 600;
+            font-size: 16px;
+            letter-spacing: 0.2px;
+        }
+
+        .new-chat {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            color: var(--ink);
+            border-radius: var(--radius-md);
+            font-family: var(--font-body);
+            font-size: 13.5px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all .2s ease;
+        }
+        .new-chat:hover {
+            background: var(--glass-strong);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+        }
+        .new-chat svg {
+            flex-shrink: 0;
+        }
+
+        .history-label {
+            margin: 22px 8px 8px 8px;
+            font-size: 11px;
+            color: var(--ink-faint);
+            font-weight: 500;
+            letter-spacing: .3px;
+        }
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            padding-right: 2px;
+        }
+        .history-item {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            padding: 9px 10px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            color: var(--ink-dim);
+            cursor: pointer;
+            border: 1px solid transparent;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all .15s ease;
+        }
+        .history-item:hover {
+            background: rgba(255, 255, 255, 0.045);
+            color: var(--ink);
+        }
+        .history-item.active {
+            background: var(--glass-strong);
+            border-color: var(--border);
+            color: var(--ink);
+        }
+        .history-item .dot {
+            width: 5px;
+            height: 5px;
+            border-radius: 50%;
+            background: var(--ink-faint);
+            flex-shrink: 0;
+        }
+        .history-item.active .dot {
+            background: #fff;
+            box-shadow: 0 0 6px #fff;
+        }
+
+        .sidebar-footer {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            padding-top: 12px;
+            margin-top: 8px;
+            border-top: 1px solid var(--border-soft);
+        }
+        .side-item {
+            display: flex;
+            align-items: center;
+            gap: 11px;
+            width: 100%;
+            padding: 10px 10px;
+            background: transparent;
+            border: none;
+            color: var(--ink-dim);
+            font-family: var(--font-body);
+            font-size: 13.5px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all .15s ease;
+            text-align: left;
+        }
+        .side-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--ink);
+        }
+        .side-item svg {
+            flex-shrink: 0;
+            opacity: .85;
+        }
+
+        /* ── MAIN ── */
+        .main {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            min-width: 0;
+            position: relative;
+        }
+
+        /* topbar */
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            padding: 12px 18px;
+            border-bottom: 1px solid var(--border-soft);
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), transparent);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+        .model-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-family: var(--font-display);
+            font-size: 13.5px;
+            font-weight: 600;
+            letter-spacing: .2px;
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 8px 20px rgba(0, 0, 0, 0.35);
+        }
+        .pulse-dot {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 0 8px #fff;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: .35;
+            }
+        }
+        .beta-tag {
+            font-family: var(--font-body);
+            font-weight: 600;
+            font-size: 10.5px;
+            color: #0a0a0b;
+            background: #fff;
+            padding: 2px 7px;
+            border-radius: 999px;
+            letter-spacing: .3px;
+        }
+        .trash-btn {
+            position: absolute;
+            right: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--ink-dim);
+            cursor: pointer;
+            transition: all .18s ease;
+        }
+        .trash-btn:hover {
+            color: #ff9d9d;
+            border-color: rgba(255, 120, 120, 0.35);
+            background: rgba(255, 80, 80, 0.08);
+        }
+
+        .mobile-toggle {
+            display: none;
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 38px;
+            height: 38px;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--ink);
+            cursor: pointer;
+        }
+
+        /* ── CHAT AREA ── */
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
+            padding: 12px clamp(16px, 6vw, 0) 8px;
+            display: flex;
+            justify-content: center;
+            min-height: 0;
+        }
+        .chat-inner {
+            width: 100%;
+            max-width: 720px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            padding: 0 12px;
+        }
+
+        /* empty state — now anchored to top, not centered */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            gap: 10px;
+            padding: 28px 20px 20px;
+            color: var(--ink-dim);
+        }
+        .empty-state .mark {
+            font-family: var(--font-display);
+            font-size: 34px;
+            font-weight: 600;
+            background: linear-gradient(160deg, #ffffff, #6b6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        .empty-state p {
+            margin: 0;
+            font-size: 14px;
+            max-width: 340px;
+            line-height: 1.5;
+        }
+        .suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 6px;
+        }
+        .suggestions span {
+            padding: 8px 14px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-size: 12.5px;
+            color: var(--ink-dim);
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+        .suggestions span:hover {
+            color: var(--ink);
+            background: var(--glass-strong);
+            transform: translateY(-1px);
+        }
+
+        /* bubbles */
+        .msg {
+            display: flex;
+            gap: 10px;
+            max-width: 100%;
+            animation: rise .25s ease;
+        }
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(6px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .msg.user {
+            justify-content: flex-end;
+        }
+        .msg .avatar {
+            width: 28px;
+            height: 28px;
+            flex-shrink: 0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 2px;
+            border: 1px solid var(--border);
+        }
+        .msg.assistant .avatar {
+            background: linear-gradient(155deg, #fff, #5a5a5a);
+        }
+        .msg .avatar img,
+        .msg .avatar video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+        .bubble {
+            padding: 12px 15px;
+            border-radius: var(--radius-md);
+            font-size: 14.5px;
+            line-height: 1.55;
+            max-width: 78%;
+            word-wrap: break-word;
+            white-space: pre-wrap;
+        }
+        .msg.assistant .bubble {
+            background: var(--glass);
+            border: 1px solid var(--border-soft);
+            border-top-left-radius: 4px;
+        }
+        .msg.user .bubble {
+            background: linear-gradient(155deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.05));
+            border: 1px solid var(--border);
+            border-top-right-radius: 4px;
+        }
+
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-top: 8px;
+            padding: 6px 13px;
+            font-size: 12.5px;
+            font-weight: 600;
+            font-family: var(--font-display);
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+        .retry-btn:hover {
+            background: rgba(255, 255, 255, 0.14);
+        }
+
+        .typing-status {
+            display: none;
+            font-size: 12px;
+            color: var(--ink-dim);
+            margin-bottom: 6px;
+            font-style: italic;
+        }
+        .typing {
+            display: flex;
+            gap: 4px;
+            padding: 4px 2px;
+        }
+        .typing span {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: var(--ink-dim);
+            animation: blink 1.2s infinite ease-in-out;
+        }
+        .typing span:nth-child(2) {
+            animation-delay: .15s;
+        }
+        .typing span:nth-child(3) {
+            animation-delay: .3s;
+        }
+        @keyframes blink {
+            0%,
+            80%,
+            100% {
+                opacity: .25;
+            }
+            40% {
+                opacity: 1;
+            }
+        }
+
+        /* attachments inside messages */
+        .msg-attachments {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        .msg-attachments img {
+            max-width: 200px;
+            max-height: 200px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: block;
+            cursor: pointer;
+        }
+        .msg-file-chip {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 8px 12px;
+            font-size: 12.5px;
+            max-width: 220px;
+        }
+        .msg-file-chip .file-icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 7px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .msg-file-chip .file-meta {
+            overflow: hidden;
+        }
+        .msg-file-chip .file-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .msg-file-chip .file-size {
+            color: var(--ink-faint);
+            font-size: 11px;
+        }
+
+        .bubble strong { font-weight: 700; color: #fff; }
+        .bubble em { font-style: italic; }
+        .bubble a { color: #cfe0ff; text-decoration: underline; text-underline-offset: 2px; }
+        .md-p { margin: 0 0 8px; }
+        .md-p:last-child { margin-bottom: 0; }
+        .md-h { font-family: var(--font-display); font-weight: 600; margin: 4px 0 6px; }
+        .md-h:first-child { margin-top: 0; }
+        .md-h1 { font-size: 17.5px; }
+        .md-h2 { font-size: 16px; }
+        .md-h3, .md-h4, .md-h5, .md-h6 { font-size: 14.5px; }
+        .md-list { margin: 0 0 8px; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; }
+        .md-list:last-child { margin-bottom: 0; }
+        .md-list li { padding-left: 2px; }
+        .inline-code {
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid var(--border-soft);
+            border-radius: 5px;
+            padding: 1px 5px;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 0.88em;
+            white-space: pre-wrap;
+        }
+
+        /* code / file card — dikirim sebagai "file" bukan teks kode mentah */
+        .code-file-card {
+            margin: 4px 0;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.28);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+        }
+        .code-file-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 9px 10px 9px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border-bottom: 1px solid var(--border-soft);
+        }
+        .code-file-info {
+            display: flex;
+            align-items: center;
+            gap: 9px;
+            min-width: 0;
+        }
+        .code-file-icon {
+            width: 26px;
+            height: 26px;
+            flex-shrink: 0;
+            border-radius: 7px;
+            background: rgba(255, 255, 255, 0.09);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-dim);
+        }
+        .code-file-name {
+            font-family: var(--font-display);
+            font-size: 12.5px;
+            font-weight: 600;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .code-file-lang {
+            font-size: 10.5px;
+            color: var(--ink-faint);
+            text-transform: uppercase;
+            letter-spacing: .4px;
+        }
+        .code-file-actions {
+            display: flex;
+            gap: 4px;
+            flex-shrink: 0;
+        }
+        .cf-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            color: var(--ink-dim);
+            cursor: pointer;
+            transition: all .15s ease;
+        }
+        .cf-btn:hover {
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--border);
+        }
+        .cf-btn.copied {
+            color: #b9ffcf;
+            border-color: rgba(140, 255, 170, 0.35);
+            background: rgba(120, 255, 160, 0.1);
+        }
+        .code-file-pre {
+            margin: 0;
+            padding: 12px 14px;
+            max-height: 320px;
+            overflow: auto;
+            font-family: 'SFMono-Regular', Consolas, monospace;
+            font-size: 12.5px;
+            line-height: 1.55;
+            color: #d8dae0;
+            white-space: pre;
+        }
+
+        /* ── COMPOSER ── */
+        .composer {
+            padding: 10px 18px 18px;
+            padding-bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+            display: flex;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: padding .2s ease;
+        }
+        .container_chat_bot {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 720px;
+        }
+        .container-chat-options {
+            position: relative;
+            display: flex;
+            background: linear-gradient(to bottom right, rgba(255, 255, 255, 0.35), rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.05));
+            border-radius: 18px;
+            padding: 1.5px;
+            overflow: hidden;
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+        }
+        .chat-box {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            background: rgba(15, 15, 17, 0.72);
+            backdrop-filter: blur(18px) saturate(160%);
+            -webkit-backdrop-filter: blur(18px) saturate(160%);
+            border-radius: 16.5px;
+            overflow: hidden;
+        }
+        .chat-box textarea {
+            background: transparent;
+            border: none;
+            width: 100%;
+            max-height: 160px;
+            min-height: 48px;
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 14.5px;
+            padding: 14px 16px 4px;
+            resize: none;
+            outline: none;
+        }
+        .chat-box textarea::placeholder {
+            color: var(--ink-faint);
+        }
+
+        .attach-preview {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 12px 14px 0;
+        }
+        .attach-preview:empty {
+            display: none;
+        }
+        .attach-chip {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 6px 10px 6px 6px;
+            font-size: 12px;
+            color: var(--ink-dim);
+            max-width: 180px;
+        }
+        .attach-chip img {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .attach-chip .file-icon {
+            width: 30px;
+            height: 30px;
+            border-radius: 6px;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--ink-dim);
+        }
+        .attach-chip span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .attach-chip .remove {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #1c1c1c;
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            color: var(--ink-dim);
+            cursor: pointer;
+            line-height: 1;
+        }
+        .attach-chip .remove:hover {
+            color: #fff;
+        }
+
+        .composer-options {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 10px 10px 12px;
+        }
+        .attach-btns {
+            display: flex;
+            gap: 4px;
+        }
+        .attach-btns button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            color: var(--ink-faint);
+            background: transparent;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all .18s ease;
+        }
+        .attach-btns button:hover {
+            color: var(--ink);
+            background: rgba(255, 255, 255, 0.06);
+        }
+
+        .send-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 34px;
+            height: 34px;
+            background: linear-gradient(to top, #1c1c1c, #4a4a4a, #1c1c1c);
+            border-radius: 10px;
+            box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
+            border: none;
+            cursor: pointer;
+            color: #dcdcdc;
+            transition: all .15s ease;
+        }
+        .send-btn svg {
+            width: 15px;
+            height: 15px;
+            transition: all .25s ease;
+        }
+        .send-btn:hover svg {
+            color: #fff;
+            filter: drop-shadow(0 0 5px #fff);
+            transform: scale(1.08);
+        }
+        .send-btn:active {
+            transform: scale(0.92);
+        }
+        .send-btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+        }
+
+        .disclaimer {
+            text-align: center;
+            font-size: 11px;
+            color: var(--ink-faint);
+            margin-top: 9px;
+        }
+
+        /* ── MODALS ── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.55);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+        .modal-backdrop.open {
+            display: flex;
+        }
+        .modal {
+            width: min(420px, 90vw);
+            max-height: 80vh;
+            overflow-y: auto;
+            background: linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(20, 20, 22, 0.85));
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            backdrop-filter: blur(26px) saturate(160%);
+            -webkit-backdrop-filter: blur(26px) saturate(160%);
+            padding: 26px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
+            display: none;
+            animation: modalIn .2s ease;
+        }
+        @keyframes modalIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(.98);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+        .modal.show {
+            display: block;
+        }
+        .modal-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .modal-head h3 {
+            margin: 0;
+            font-family: var(--font-display);
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .modal-close {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            color: var(--ink-dim);
+            cursor: pointer;
+        }
+        .modal-close:hover {
+            color: var(--ink);
+        }
+        .field {
+            margin-bottom: 14px;
+        }
+        .field label {
+            display: block;
+            font-size: 12px;
+            color: var(--ink-dim);
+            margin-bottom: 6px;
+        }
+        .field input,
+        .field select {
+            width: 100%;
+            padding: 10px 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--ink);
+            font-family: var(--font-body);
+            font-size: 13.5px;
+            outline: none;
+        }
+        .row-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 0;
+            border-bottom: 1px solid var(--border-soft);
+            font-size: 13.5px;
+        }
+        .row-item:last-child {
+            border-bottom: none;
+        }
+        .row-item .sub {
+            color: var(--ink-faint);
+            font-size: 12px;
+            margin-top: 2px;
+        }
+
+        .toggle {
+            width: 40px;
+            height: 22px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 999px;
+            position: relative;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .toggle::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: var(--ink-faint);
+            transition: all .2s ease;
+        }
+        .toggle.on {
+            background: rgba(255, 255, 255, 0.28);
+        }
+        .toggle.on::after {
+            left: 20px;
+            background: #fff;
+            box-shadow: 0 0 6px #fff;
+        }
+
+        .account-avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 16px;
+            background: linear-gradient(155deg, #fff, #4a4a4a);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 22px;
+            font-weight: 700;
+            color: #0a0a0b;
+            margin-bottom: 14px;
+        }
+        .about-mark {
+            font-family: var(--font-display);
+            font-size: 30px;
+            font-weight: 600;
+            background: linear-gradient(160deg, #fff, #6b6b6b);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 6px;
+        }
+        .about-version {
+            font-size: 12px;
+            color: var(--ink-faint);
+            margin-bottom: 16px;
+        }
+        .about-text {
+            font-size: 13.5px;
+            color: var(--ink-dim);
+            line-height: 1.6;
+        }
+        .about-links {
+            display: flex;
+            gap: 10px;
+            margin-top: 18px;
+        }
+        .about-links a {
+            flex: 1;
+            text-align: center;
+            padding: 9px;
+            background: var(--glass);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--ink);
+            text-decoration: none;
+            font-size: 12.5px;
+            transition: all .15s ease;
+        }
+        .about-links a:hover {
+            background: var(--glass-strong);
+        }
+
+        .overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 15;
+        }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 860px) {
+            .app {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                bottom: 0;
+                width: 264px;
+                transform: translateX(-100%);
+                transition: transform .25s ease;
+            }
+            .sidebar.open {
+                transform: translateX(0);
+            }
+            .mobile-toggle {
+                display: flex;
+            }
+            .overlay.show {
+                display: block;
+            }
+            .bubble {
+                max-width: 88%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+
+        <!-- SIDEBAR -->
+        <aside class="sidebar" id="sidebar">
+            <div class="brand">
+                <div class="brand-mark" id="brandMark"><img src="logo.png" alt="Logo sall" /></div>
+                <span>sall</span>
+            </div>
+
+            <button class="new-chat" id="newChatBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14" /></svg>
+                Chat baru
+            </button>
+
+            <div class="history-label">Riwayat</div>
+            <div class="history-list" id="historyList"></div>
+
+            <div class="sidebar-footer">
+                <button class="side-item" data-modal="settings">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                    Pengaturan
+                </button>
+                <button class="side-item" data-modal="account">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                    Akun
+                </button>
+                <button class="side-item" data-modal="about">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+                    Tentang
+                </button>
+            </div>
+        </aside>
+
+        <div class="overlay" id="overlay"></div>
+
+        <!-- MAIN -->
+        <main class="main">
+            <header class="topbar">
+                <button class="mobile-toggle" id="mobileToggle">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18" /></svg>
+                </button>
+                <div class="model-pill"><span class="pulse-dot"></span>sall 4.7&nbsp;<span class="beta-tag">Beta</span></div>
+                <button class="trash-btn" id="clearChatBtn" title="Hapus percakapan">
+                    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6h16Z"/><path d="M10 11v6M14 11v6"/></svg>
+                </button>
+            </header>
+
+            <div class="chat-area" id="chatArea">
+                <div class="chat-inner" id="chatInner">
+                    <div class="empty-state" id="emptyState">
+                        <div class="mark">✦</div>
+                        <p>Halo, gw sall. Tanya apa aja atau langsung mulai ngobrol di bawah.</p>
+                        <div class="suggestions">
+                            <span data-fill="Bantu gw bikin rencana harian">Bikin rencana harian</span>
+                            <span data-fill="Jelasin sesuatu ke gw">Jelasin sesuatu</span>
+                            <span data-fill="Bantu gw nulis pesan">Bantu nulis pesan</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- COMPOSER -->
+            <div class="composer">
+                <div class="container_chat_bot">
+                    <div class="container-chat-options">
+                        <div class="chat-box">
+                            <div class="attach-preview" id="attachPreview"></div>
+                            <textarea id="chatInput" rows="1" placeholder="Kirim pesan ke sall..."></textarea>
+                            <input type="file" id="fileInputDoc" style="display:none" multiple />
+                            <input type="file" id="fileInputImg" style="display:none" accept="image/*" multiple />
+                            <div class="composer-options">
+                                <div class="attach-btns">
+                                    <button title="Lampirkan file" id="attachFileBtn">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+                                    </button>
+                                    <button title="Gambar" id="attachImgBtn">
+                                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+                                    </button>
+                                </div>
+                                <button class="send-btn" id="sendBtn" disabled>
+                                    <svg viewBox="0 0 512 512" fill="currentColor"><path d="M473 39.05a24 24 0 0 0-25.5-5.46L47.47 185h-.08a24 24 0 0 0 1 45.16l.41.13l137.3 58.63a16 16 0 0 0 15.54-3.59L422 80a7.07 7.07 0 0 1 10 10L226.66 310.26a16 16 0 0 0-3.59 15.54l58.65 137.38c.06.2.12.38.19.57c3.2 9.27 11.3 15.81 21.09 16.25h1a24.63 24.63 0 0 0 23-15.46L478.39 64.62A24 24 0 0 0 473 39.05"/></svg>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="disclaimer">sall bisa saja salah. Cek kembali info penting.</div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODALS -->
+    <div class="modal-backdrop" id="modalBackdrop">
+
+        <!-- SETTINGS -->
+        <div class="modal" id="modalSettings">
+            <div class="modal-head"><h3>Pengaturan</h3><div class="modal-close" data-close>✕</div></div>
+
+            <div class="field">
+                <label>Nama tampilan</label>
+                <input type="text" placeholder="Nama kamu" id="settingsName" />
+            </div>
+
+            <div class="field">
+                <label>Gaya balasan</label>
+                <select id="settingsStyle">
+                    <option>Santai</option>
+                    <option>Ringkas</option>
+                    <option>Formal</option>
+                    <option>Detail</option>
+                </select>
+            </div>
+
+            <div class="row-item">
+                <div><div>Mode gelap</div><div class="sub">Selalu aktif untuk sall</div></div>
+                <div class="toggle on"></div>
+            </div>
+            <div class="row-item">
+                <div><div>Suara notifikasi</div><div class="sub">Bunyi saat balasan selesai</div></div>
+                <div class="toggle" data-toggle></div>
+            </div>
+            <div class="row-item">
+                <div><div>Simpan riwayat chat</div><div class="sub">Simpan percakapan di perangkat ini</div></div>
+                <div class="toggle on" data-toggle></div>
+            </div>
+
+            <div style="margin-top:16px;font-size:12px;color:var(--ink-faint);border-top:1px solid var(--border-soft);padding-top:14px;">
+                🔑 API pakai <strong>SynoxCloud</strong> (FREE) — langsung siap pakai.
+            </div>
+        </div>
+
+        <!-- ACCOUNT -->
+        <div class="modal" id="modalAccount">
+            <div class="modal-head"><h3>Akun</h3><div class="modal-close" data-close>✕</div></div>
+            <div class="account-avatar">V</div>
+            <div class="field"><label>Nama</label><input type="text" value="vsall" /></div>
+            <div class="field"><label>Email</label><input type="text" placeholder="belum diatur" /></div>
+            <div class="row-item"><div>Paket</div><div class="sub" style="margin-top:0;">Gratis</div></div>
+            <div class="row-item"><div>Chat tersimpan</div><div class="sub" id="accountChatCount" style="margin-top:0;">0</div></div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="modal" id="modalAbout">
+            <div class="modal-head"><h3>Tentang</h3><div class="modal-close" data-close>✕</div></div>
+            <div class="about-mark">✦ sall</div>
+            <div class="about-version">Versi 4.7 · Beta</div>
+            <div class="about-text">
+                sall adalah asisten obrolan pribadi dengan antarmuka gelap dan kaca.
+                <br><br>
+                API menggunakan <strong>SynoxCloud</strong> — gratis dan langsung bisa dipakai.
+                Dukungan untuk gambar dan PDF yang dilampirkan.
+            </div>
+            <div class="about-links">
+                <a href="#" onclick="return false;">Privasi</a>
+                <a href="#" onclick="return false;">Ketentuan</a>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        (function() {
+            // ─── 🔑 API ──────────────────────────────────────────────
+            // Konfigurasi API ada di bawah, cari "PANGGIL API"
+            const SYSTEM_PROMPT = 'Kamu adalah "sall", asisten AI yang ramah, santai, dan to the point, ngobrol pakai Bahasa Indonesia campur casual English kalau perlu. Kamu bantu user buat ngoding, desain, dan kerjaan sehari-hari. Kalau user minta kode/script, selalu tulis kodenya di dalam code block markdown (```bahasa\\n...\\n```) biar bisa dikenali sebagai file. Jawaban singkat & jelas kalau ga diminta detail panjang.';
+            // ────────────────────────────────────────────────────────────
+
+            // ─── 🎬 LOGO VIDEO — ganti link di sini aja, otomatis kepake ──
+            // Taruh link video-nya (mp4/webm) di antara tanda kutip di bawah ini.
+            const LOGO_SRC = 'GANTI_DENGAN_LINK_VIDEO_LOGO.mp4';
+
+            function logoMediaTag() {
+                return '<video src="' + LOGO_SRC + '" autoplay muted loop playsinline></video>';
+            }
+            // ────────────────────────────────────────────────────────────
+
+            // ─── STATE ────────────────────────────────────────────────
+            let conversations = [];
+            let activeId = null;
+
+            const historyList = document.getElementById('historyList');
+            const chatInner = document.getElementById('chatInner');
+            const emptyState = document.getElementById('emptyState');
+            const chatArea = document.getElementById('chatArea');
+            const chatInput = document.getElementById('chatInput');
+            const sendBtn = document.getElementById('sendBtn');
+            const attachPreview = document.getElementById('attachPreview');
+            const fileInputDoc = document.getElementById('fileInputDoc');
+            const fileInputImg = document.getElementById('fileInputImg');
+            let pendingAttachments = [];
+
+            // ─── VIEWPORT / KEYBOARD-AWARE LAYOUT ─────────────────────
+            function updateViewportHeight() {
+                const h = window.visualViewport ? window.visualViewport.height : window.innerHeight;
+                document.documentElement.style.setProperty('--app-vh', (h * 0.01) + 'px');
+            }
+            updateViewportHeight();
+            // Chrome mobile kadang salah ukur tinggi di frame pertama (sebelum address bar settle)
+            setTimeout(updateViewportHeight, 150);
+            setTimeout(updateViewportHeight, 500);
+            window.addEventListener('orientationchange', () => setTimeout(updateViewportHeight, 200));
+            window.addEventListener('resize', updateViewportHeight);
+            if (window.visualViewport) {
+                window.visualViewport.addEventListener('resize', () => {
+                    updateViewportHeight();
+                    scrollToBottom(true);
+                });
+                window.visualViewport.addEventListener('scroll', updateViewportHeight);
+            }
+
+            function uid() { return 'c_' + Math.random().toString(36).slice(2, 9); }
+
+            function createConversation() {
+                const conv = { id: uid(), title: 'Chat baru', messages: [] };
+                conversations.unshift(conv);
+                activeId = conv.id;
+                renderHistory();
+                renderChat();
+                return conv;
+            }
+
+            function getActive() { return conversations.find(c => c.id === activeId); }
+
+            function renderHistory() {
+                historyList.innerHTML = '';
+                conversations.forEach(c => {
+                    const item = document.createElement('div');
+                    item.className = 'history-item' + (c.id === activeId ? ' active' : '');
+                    item.innerHTML = '<span class="dot"></span><span>' + escapeHtml(c.title) + '</span>';
+                    item.addEventListener('click', () => {
+                        activeId = c.id;
+                        renderHistory();
+                        renderChat();
+                        closeMobileSidebar();
+                    });
+                    historyList.appendChild(item);
+                });
+                const accEl = document.getElementById('accountChatCount');
+                if (accEl) accEl.textContent = conversations.length;
+            }
+
+            function renderChat() {
+                const conv = getActive();
+                chatInner.innerHTML = '';
+                if (!conv || conv.messages.length === 0) {
+                    chatInner.appendChild(emptyState);
+                    return;
+                }
+                conv.messages.forEach(m => chatInner.appendChild(buildBubble(m.role, m.text, m.attachments)));
+                scrollToBottom(false);
+            }
+
+            function buildBubble(role, text, attachments) {
+                const wrap = document.createElement('div');
+                wrap.className = 'msg ' + role;
+                if (role === 'assistant') {
+                    wrap.innerHTML = '<div class="avatar">' + logoMediaTag() + '</div><div class="bubble"></div>';
+                } else {
+                    wrap.innerHTML = '<div class="bubble"></div>';
+                }
+                const bubble = wrap.querySelector('.bubble');
+
+                if (attachments && attachments.length) {
+                    const attWrap = document.createElement('div');
+                    attWrap.className = 'msg-attachments';
+                    attachments.forEach(att => {
+                        if (att.isImage) {
+                            const img = document.createElement('img');
+                            img.src = att.dataUrl;
+                            img.alt = att.name;
+                            img.addEventListener('click', () => window.open(att.dataUrl, '_blank'));
+                            attWrap.appendChild(img);
+                        } else {
+                            const chip = document.createElement('div');
+                            chip.className = 'msg-file-chip';
+                            chip.innerHTML = '<div class="file-icon">' + fileSvg() + '</div>' +
+                                '<div class="file-meta"><div class="file-name">' + escapeHtml(att.name) +
+                                '</div>' +
+                                '<div class="file-size">' + formatSize(att.size) + '</div></div>';
+                            attWrap.appendChild(chip);
+                        }
+                    });
+                    bubble.appendChild(attWrap);
+                }
+
+                if (text) {
+                    if (role === 'assistant') {
+                        renderAssistantContent(bubble, text);
+                    } else {
+                        const textEl = document.createElement('div');
+                        textEl.textContent = text;
+                        bubble.appendChild(textEl);
+                    }
+                }
+                return wrap;
+            }
+
+            // ─── DETEKSI BLOK KODE → KIRIM SEBAGAI FILE, BUKAN TEKS ────
+            const EXT_MAP = {
+                javascript: 'js', js: 'js', jsx: 'jsx', typescript: 'ts', ts: 'ts', tsx: 'tsx',
+                python: 'py', py: 'py', html: 'html', css: 'css', json: 'json', bash: 'sh',
+                sh: 'sh', shell: 'sh', java: 'java', c: 'c', cpp: 'cpp', 'c++': 'cpp', php: 'php',
+                sql: 'sql', xml: 'xml', yaml: 'yml', yml: 'yml', markdown: 'md', md: 'md',
+                go: 'go', rust: 'rs', kotlin: 'kt', swift: 'swift', ruby: 'rb', txt: 'txt'
+            };
+            let fileCounter = 0;
+
+            function mdInline(escaped) {
+                escaped = escaped.replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>');
+                escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                escaped = escaped.replace(/__([^_]+)__/g, '<strong>$1</strong>');
+                escaped = escaped.replace(/\*([^*\n]+)\*/g, '<em>$1</em>');
+                escaped = escaped.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
+                return escaped;
+            }
+
+            function renderMarkdownBlock(container, text) {
+                const lines = text.split('\n');
+                let i = 0;
+                let currentPara = [];
+                function flushPara() {
+                    if (currentPara.length) {
+                        const p = document.createElement('div');
+                        p.className = 'md-p';
+                        p.innerHTML = mdInline(escapeHtml(currentPara.join('\n')));
+                        container.appendChild(p);
+                        currentPara = [];
+                    }
+                }
+                while (i < lines.length) {
+                    const trimmed = lines[i].trim();
+                    if (/^#{1,6}\s+/.test(trimmed)) {
+                        flushPara();
+                        const level = Math.min(trimmed.match(/^#+/)[0].length, 6);
+                        const h = document.createElement('div');
+                        h.className = 'md-h md-h' + level;
+                        h.innerHTML = mdInline(escapeHtml(trimmed.replace(/^#{1,6}\s+/, '')));
+                        container.appendChild(h);
+                        i++;
+                        continue;
+                    }
+                    if (/^[-*]\s+/.test(trimmed)) {
+                        flushPara();
+                        const ul = document.createElement('ul');
+                        ul.className = 'md-list';
+                        while (i < lines.length && /^[-*]\s+/.test(lines[i].trim())) {
+                            const li = document.createElement('li');
+                            li.innerHTML = mdInline(escapeHtml(lines[i].trim().replace(/^[-*]\s+/, '')));
+                            ul.appendChild(li);
+                            i++;
+                        }
+                        container.appendChild(ul);
+                        continue;
+                    }
+                    if (/^\d+\.\s+/.test(trimmed)) {
+                        flushPara();
+                        const ol = document.createElement('ol');
+                        ol.className = 'md-list';
+                        while (i < lines.length && /^\d+\.\s+/.test(lines[i].trim())) {
+                            const li = document.createElement('li');
+                            li.innerHTML = mdInline(escapeHtml(lines[i].trim().replace(/^\d+\.\s+/, '')));
+                            ol.appendChild(li);
+                            i++;
+                        }
+                        container.appendChild(ol);
+                        continue;
+                    }
+                    if (trimmed === '') {
+                        flushPara();
+                        i++;
+                        continue;
+                    }
+                    currentPara.push(lines[i]);
+                    i++;
+                }
+                flushPara();
+            }
+
+            function renderAssistantContent(bubble, text) {
+                const codeRegex = /```(\w+)?\n?([\s\S]*?)```/g;
+                let lastIndex = 0, match, found = false;
+                while ((match = codeRegex.exec(text)) !== null) {
+                    found = true;
+                    const before = text.slice(lastIndex, match.index).trim();
+                    if (before) renderMarkdownBlock(bubble, before);
+                    const lang = (match[1] || 'txt').toLowerCase();
+                    const code = match[2].replace(/\n$/, '');
+                    if (code.trim()) bubble.appendChild(buildCodeFile(lang, code));
+                    lastIndex = codeRegex.lastIndex;
+                }
+                const rest = text.slice(lastIndex).trim();
+                if (rest) {
+                    renderMarkdownBlock(bubble, rest);
+                } else if (!found) {
+                    renderMarkdownBlock(bubble, text);
+                }
+            }
+
+            function buildCodeFile(lang, code) {
+                fileCounter++;
+                const ext = EXT_MAP[lang] || 'txt';
+                const filename = 'sall-code-' + fileCounter + '.' + ext;
+                const card = document.createElement('div');
+                card.className = 'code-file-card';
+                card.innerHTML =
+                    '<div class="code-file-head">' +
+                        '<div class="code-file-info">' +
+                            '<div class="code-file-icon">' + fileSvg() + '</div>' +
+                            '<div><div class="code-file-name">' + escapeHtml(filename) + '</div>' +
+                            '<div class="code-file-lang">' + escapeHtml(lang) + '</div></div>' +
+                        '</div>' +
+                        '<div class="code-file-actions">' +
+                            '<button class="cf-btn cf-copy" title="Salin kode">' + copySvg() + '</button>' +
+                            '<button class="cf-btn cf-download" title="Download file">' + downloadSvg() + '</button>' +
+                        '</div>' +
+                    '</div>' +
+                    '<pre class="code-file-pre"><code></code></pre>';
+                card.querySelector('code').textContent = code;
+
+                card.querySelector('.cf-copy').addEventListener('click', (e) => {
+                    navigator.clipboard.writeText(code);
+                    const btn = e.currentTarget;
+                    btn.classList.add('copied');
+                    btn.innerHTML = checkSvg();
+                    setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = copySvg(); }, 1400);
+                });
+                card.querySelector('.cf-download').addEventListener('click', () => {
+                    const blob = new Blob([code], { type: 'text/plain' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    URL.revokeObjectURL(url);
+                });
+                return card;
+            }
+
+            function fileSvg() {
+                return '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>';
+            }
+            function copySvg() {
+                return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
+            }
+            function downloadSvg() {
+                return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>';
+            }
+            function checkSvg() {
+                return '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+            }
+
+            function formatSize(bytes) {
+                if (bytes < 1024) return bytes + ' B';
+                if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+                return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+            }
+
+            function scrollToBottom(smooth) {
+                requestAnimationFrame(() => {
+                    chatArea.scrollTo({ top: chatArea.scrollHeight, behavior: smooth ? 'smooth' : 'auto' });
+                });
+            }
+
+            function escapeHtml(str) {
+                const d = document.createElement('div');
+                d.textContent = str;
+                return d.innerHTML;
+            }
+
+            // ─── BACA ISI FILE (biar sall beneran bisa "lihat" lampiran) ─
+            const TEXT_EXT = ['txt', 'md', 'json', 'js', 'jsx', 'ts', 'tsx', 'py', 'java', 'c', 'cpp', 'h',
+                'cs', 'php', 'rb', 'go', 'rs', 'html', 'htm', 'css', 'csv', 'xml', 'yaml', 'yml', 'sql',
+                'sh', 'ini', 'log', 'vue', 'svelte', 'env', 'conf'
+            ];
+
+            function loadScriptOnce(src) {
+                return new Promise((resolve, reject) => {
+                    if (document.querySelector('script[data-src="' + src + '"]')) {
+                        const check = setInterval(() => {}, 50);
+                        clearInterval(check);
+                        resolve();
+                        return;
+                    }
+                    const s = document.createElement('script');
+                    s.src = src;
+                    s.dataset.src = src;
+                    s.onload = () => resolve();
+                    s.onerror = () => reject(new Error('Gagal load library dari ' + src));
+                    document.head.appendChild(s);
+                });
+            }
+
+            function withTimeout(promise, ms, label) {
+                return Promise.race([
+                    promise,
+                    new Promise((_, rej) => setTimeout(() => rej(new Error((label || 'Proses') + ' timeout')), ms))
+                ]);
+            }
+
+            function isTextLike(att) {
+                if (att.mediaType && att.mediaType.startsWith('text/')) return true;
+                if (att.mediaType === 'application/json') return true;
+                const ext = (att.name.split('.').pop() || '').toLowerCase();
+                return TEXT_EXT.includes(ext);
+            }
+
+            function base64ToBytes(base64) {
+                const binary = atob(base64);
+                const bytes = new Uint8Array(binary.length);
+                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                return bytes;
+            }
+
+            function capText(str, max) {
+                if (!str) return str;
+                return str.length > max ? str.slice(0, max) + '\n...(dipotong, teks terlalu panjang)' : str;
+            }
+
+            function extractPlainText(att) {
+                try {
+                    const bytes = base64ToBytes(att.base64);
+                    const text = new TextDecoder('utf-8').decode(bytes);
+                    return `[Isi file "${att.name}"]:\n${capText(text, 4000)}`;
+                } catch (e) {
+                    return `[Gagal membaca isi file "${att.name}": ${e.message}]`;
+                }
+            }
+
+            let pdfJsReady = null;
+            async function ensurePdfJs() {
+                if (window.pdfjsLib) return;
+                if (!pdfJsReady) {
+                    pdfJsReady = loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.min.js')
+                        .then(() => {
+                            window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+                                'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js';
+                        });
+                }
+                await pdfJsReady;
+            }
+
+            async function extractPdfText(att) {
+                try {
+                    await withTimeout(ensurePdfJs(), 15000, 'Load PDF reader');
+                    const bytes = base64ToBytes(att.base64);
+                    const pdf = await withTimeout(window.pdfjsLib.getDocument({ data: bytes }).promise, 15000, 'Buka PDF');
+                    const maxPages = Math.min(pdf.numPages, 15);
+                    let text = '';
+                    for (let p = 1; p <= maxPages; p++) {
+                        const page = await pdf.getPage(p);
+                        const content = await page.getTextContent();
+                        text += content.items.map(it => it.str).join(' ') + '\n';
+                        if (text.length > 6000) break;
+                    }
+                    if (!text.trim()) {
+                        return `[File PDF "${att.name}" sepertinya berupa hasil scan/gambar — sall tidak menemukan teks yang bisa diekstrak langsung.]`;
+                    }
+                    return `[Isi teks PDF "${att.name}"]:\n${capText(text.trim(), 6000)}`;
+                } catch (e) {
+                    return `[Gagal membaca PDF "${att.name}": ${e.message}]`;
+                }
+            }
+
+            let tesseractReady = null;
+            async function ensureTesseract() {
+                if (window.Tesseract) return;
+                if (!tesseractReady) {
+                    tesseractReady = loadScriptOnce('https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js');
+                }
+                await tesseractReady;
+            }
+
+            async function extractImageText(att, onProgress) {
+                try {
+                    await withTimeout(ensureTesseract(), 15000, 'Load OCR engine');
+                    if (onProgress) onProgress('Membaca teks di gambar (OCR)...');
+                    const { data } = await withTimeout(
+                        Tesseract.recognize(att.dataUrl, 'ind+eng'), 30000, 'OCR gambar'
+                    );
+                    const text = (data.text || '').trim();
+                    if (!text) {
+                        return `[Gambar "${att.name}" dilampirkan. sall tidak menemukan tulisan di gambar ini — sall saat ini hanya bisa membaca teks yang ada di gambar (OCR), belum bisa mendeskripsikan objek/wajah/pemandangan secara visual.]`;
+                    }
+                    return `[Teks yang terbaca dari gambar "${att.name}" via OCR — bukan deskripsi visual, cuma tulisan yang ada di gambar]:\n${capText(text, 4000)}`;
+                } catch (e) {
+                    return `[Gagal OCR gambar "${att.name}": ${e.message}. sall hanya bisa tahu nama filenya: ${att.name}]`;
+                }
+            }
+
+            async function extractAttachmentContext(attachments, onProgress) {
+                if (!attachments || !attachments.length) return '';
+                const parts = [];
+                for (const att of attachments) {
+                    if (att.isPdf) {
+                        if (onProgress) onProgress('Membaca PDF: ' + att.name + '...');
+                        parts.push(await extractPdfText(att));
+                    } else if (att.isImage) {
+                        parts.push(await extractImageText(att, onProgress));
+                    } else if (isTextLike(att)) {
+                        if (onProgress) onProgress('Membaca file: ' + att.name + '...');
+                        parts.push(extractPlainText(att));
+                    } else {
+                        parts.push(`[File "${att.name}" dilampirkan, tapi jenis file ini belum bisa dibaca isinya oleh sall — cuma nama & ukuran file yang diketahui.]`);
+                    }
+                }
+                return parts.join('\n\n');
+            }
+
+            // ─── SENDING ──────────────────────────────────────────────
+            async function sendMessage() {
+                const text = chatInput.value.trim();
+                if (!text && pendingAttachments.length === 0) return;
+                let conv = getActive();
+                if (!conv) conv = createConversation();
+
+                const attachments = pendingAttachments;
+                pendingAttachments = [];
+                renderAttachPreview();
+
+                conv.messages.push({ role: 'user', text, attachments });
+                if (conv.messages.length === 1) {
+                    const titleSrc = text || (attachments[0] ? attachments[0].name : 'Chat baru');
+                    conv.title = titleSrc.length > 28 ? titleSrc.slice(0, 28) + '…' : titleSrc;
+                    renderHistory();
+                }
+                renderChat();
+                chatInput.value = '';
+                autosize();
+                updateSendState();
+
+                // typing indicator
+                const typingWrap = document.createElement('div');
+                typingWrap.className = 'msg assistant';
+                typingWrap.innerHTML =
+                    '<div class="avatar">' + logoMediaTag() + '</div><div class="bubble"><div class="typing-status"></div><div class="typing"><span></span><span></span><span></span></div></div>';
+                chatInner.appendChild(typingWrap);
+                scrollToBottom(true);
+                const statusEl = typingWrap.querySelector('.typing-status');
+
+                try {
+                    let apiPrompt = text;
+                    if (attachments && attachments.length) {
+                        statusEl.style.display = 'block';
+                        statusEl.textContent = 'Membaca lampiran...';
+                        const context = await extractAttachmentContext(attachments, (msg) => {
+                            statusEl.textContent = msg;
+                        });
+                        if (context) {
+                            apiPrompt = (text ? text + '\n\n' : '') +
+                                'Berikut isi file yang dilampirkan user, gunakan sebagai konteks jawaban:\n\n' + context;
+                        }
+                    }
+                    apiPrompt = capText(apiPrompt, 12000);
+                    statusEl.style.display = 'block';
+                    const replyText = await callSalAPI(apiPrompt, (msg) => { statusEl.textContent = msg; });
+                    typingWrap.remove();
+                    conv.messages.push({ role: 'assistant', text: replyText });
+                    chatInner.appendChild(buildBubble('assistant', replyText));
+                    scrollToBottom(true);
+                } catch (err) {
+                    typingWrap.remove();
+                    let msg = 'Gagal memanggil API: ' + err.message + ' — server AI gratis ini kadang lagi sibuk/down, coba lagi beberapa saat.';
+                    conv.messages.push({ role: 'assistant', text: msg });
+                    const errWrap = buildBubble('assistant', msg);
+                    chatInner.appendChild(errWrap);
+                    const retryBtn = document.createElement('button');
+                    retryBtn.className = 'retry-btn';
+                    retryBtn.innerHTML = '↻ Coba lagi';
+                    retryBtn.addEventListener('click', () => {
+                        retryBtn.remove();
+                        chatInput.value = text;
+                        pendingAttachments = attachments || [];
+                        renderAttachPreview();
+                        autosize();
+                        updateSendState();
+                        sendMessage();
+                    });
+                    errWrap.querySelector('.bubble').appendChild(retryBtn);
+                    scrollToBottom(true);
+                }
+            }
+
+            // ─── PANGGIL API (lewat Vercel Serverless Function /api/chat) ──
+            // Key API TIDAK ada di file ini — disimpan di Environment Variables
+            // Vercel (nama variabel: SAL_API_KEY) dan dipakai server-side oleh api/chat.js.
+            // Browser cuma manggil endpoint "/api/chat" di domain sendiri.
+
+            async function callClaudeAPI(pesan) {
+                const res = await fetch('/api/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt: pesan, system: SYSTEM_PROMPT })
+                });
+                const data = await res.json();
+                if (!res.ok) {
+                    throw new Error(data.error || ('HTTP ' + res.status));
+                }
+                if (typeof data.reply === 'string') return data.reply;
+                throw new Error('Format response tidak dikenali');
+            }
+
+            async function callSalAPI(pesan, onStatus) {
+                let lastErr = null;
+                for (let attempt = 1; attempt <= 3; attempt++) {
+                    try {
+                        if (onStatus) {
+                            onStatus(attempt > 1 ? `Coba lagi ke Claude (percobaan ${attempt})...` : 'Mikir...');
+                        }
+                        return await callClaudeAPI(pesan);
+                    } catch (e) {
+                        lastErr = e;
+                        if (attempt < 3) await new Promise(r => setTimeout(r, 1000));
+                    }
+                }
+                throw lastErr || new Error('Gagal menghubungi Claude API');
+            }
+
+            // ─── AUTO-GROW + SEND STATE ──────────────────────────────
+            function autosize() {
+                chatInput.style.height = 'auto';
+                chatInput.style.height = Math.min(chatInput.scrollHeight, 160) + 'px';
+            }
+
+            function updateSendState() {
+                sendBtn.disabled = chatInput.value.trim().length === 0 && pendingAttachments.length === 0;
+            }
+
+            // ─── FILE / IMAGE UPLOAD ──────────────────────────────────
+            function handleFiles(fileList) {
+                Array.from(fileList).forEach(file => {
+                    const isImage = file.type.startsWith('image/');
+                    const isPdf = file.type === 'application/pdf';
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const dataUrl = e.target.result;
+                        const base64 = dataUrl.split(',')[1];
+                        pendingAttachments.push({
+                            name: file.name,
+                            size: file.size,
+                            isImage,
+                            isPdf,
+                            mediaType: file.type,
+                            dataUrl,
+                            base64
+                        });
+                        renderAttachPreview();
+                        updateSendState();
+                    };
+                    reader.readAsDataURL(file);
+                });
+            }
+
+            function renderAttachPreview() {
+                attachPreview.innerHTML = '';
+                pendingAttachments.forEach((att, idx) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'attach-chip';
+                    const thumb = att.isImage ?
+                        '<img src="' + att.dataUrl + '" alt="">' :
+                        '<div class="file-icon">' + fileSvg() + '</div>';
+                    chip.innerHTML = thumb + '<span>' + escapeHtml(att.name) +
+                        '</span><div class="remove">✕</div>';
+                    chip.querySelector('.remove').addEventListener('click', () => {
+                        pendingAttachments.splice(idx, 1);
+                        renderAttachPreview();
+                        updateSendState();
+                    });
+                    attachPreview.appendChild(chip);
+                });
+            }
+
+            document.getElementById('attachFileBtn').addEventListener('click', () => fileInputDoc.click());
+            document.getElementById('attachImgBtn').addEventListener('click', () => fileInputImg.click());
+            fileInputDoc.addEventListener('change', (e) => { handleFiles(e.target.files);
+                e.target.value = ''; });
+            fileInputImg.addEventListener('change', (e) => { handleFiles(e.target.files);
+                e.target.value = ''; });
+
+            chatInput.addEventListener('focus', () => {
+                setTimeout(() => scrollToBottom(true), 300);
+            });
+            chatInput.addEventListener('input', () => { autosize();
+                updateSendState(); });
+            chatInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            sendBtn.addEventListener('click', sendMessage);
+
+            document.querySelectorAll('.suggestions span').forEach(s => {
+                s.addEventListener('click', () => {
+                    chatInput.value = s.dataset.fill;
+                    autosize();
+                    updateSendState();
+                    chatInput.focus();
+                });
+            });
+
+            // ─── NEW CHAT / CLEAR ─────────────────────────────────────
+            document.getElementById('newChatBtn').addEventListener('click', () => {
+                createConversation();
+                closeMobileSidebar();
+            });
+
+            document.getElementById('clearChatBtn').addEventListener('click', () => {
+                const conv = getActive();
+                if (!conv || conv.messages.length === 0) return;
+                if (confirm('Hapus percakapan ini?')) {
+                    conversations = conversations.filter(c => c.id !== conv.id);
+                    if (conversations.length === 0) {
+                        createConversation();
+                    } else {
+                        activeId = conversations[0].id;
+                        renderHistory();
+                        renderChat();
+                    }
+                }
+            });
+
+            // ─── MODALS ────────────────────────────────────────────────
+            const backdrop = document.getElementById('modalBackdrop');
+
+            function openModal(name) {
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('show'));
+                const el = document.getElementById('modal' + name.charAt(0).toUpperCase() + name.slice(1));
+                if (el) { el.classList.add('show');
+                    backdrop.classList.add('open'); }
+            }
+
+            function closeModals() { backdrop.classList.remove('open');
+                document.querySelectorAll('.modal').forEach(m => m.classList.remove('show')); }
+
+            document.querySelectorAll('[data-modal]').forEach(btn => {
+                btn.addEventListener('click', () => { openModal(btn.dataset.modal);
+                    closeMobileSidebar(); });
+            });
+            document.querySelectorAll('[data-close]').forEach(btn => btn.addEventListener('click', closeModals));
+            backdrop.addEventListener('click', (e) => { if (e.target === backdrop) closeModals(); });
+
+            document.querySelectorAll('[data-toggle]').forEach(t => {
+                t.addEventListener('click', () => t.classList.toggle('on'));
+            });
+
+            // ─── MOBILE SIDEBAR ───────────────────────────────────────
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('overlay');
+
+            function openMobileSidebar() { sidebar.classList.add('open');
+                overlay.classList.add('show'); }
+
+            function closeMobileSidebar() { sidebar.classList.remove('open');
+                overlay.classList.remove('show'); }
+            document.getElementById('mobileToggle').addEventListener('click', () => {
+                sidebar.classList.contains('open') ? closeMobileSidebar() : openMobileSidebar();
+            });
+            overlay.addEventListener('click', closeMobileSidebar);
+
+            // ─── INIT ──────────────────────────────────────────────────
+            const brandMarkEl = document.getElementById('brandMark');
+            if (brandMarkEl) brandMarkEl.innerHTML = logoMediaTag();
+            createConversation();
+            updateSendState();
+        })();
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Sall</string>
+    <string name="title_activity_main">Sall</string>
+    <string name="package_name">com.sall.downloader</string>
+    <string name="custom_url_scheme">com.sall.downloader</string>
+</resources>
